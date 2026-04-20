@@ -1,0 +1,30 @@
+# ----------------------------
+# Maintenance queries (internal use only, excluded from public release)
+# ----------------------------
+sql/04_maintenance/
+
+# ----------------------------
+# Internal documents (remove or gitignore before making repo public)
+# ----------------------------
+INTERNAL_*.md
+
+# ----------------------------
+# Python
+# ----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+
+# ----------------------------
+# OS
+# ----------------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------------
+# Output (large files, generated locally)
+# ----------------------------
+output/python/*.png
+output/python/*.jpg
+output/sql/*.csv
