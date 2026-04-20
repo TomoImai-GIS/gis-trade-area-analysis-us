@@ -61,6 +61,7 @@ def fetch_and_load(gdf: gpd.GeoDataFrame, table: str) -> None:
     """Reproject GeoDataFrame to TARGET_CRS and write to PostGIS."""
     gdf = gdf.to_crs(epsg=TARGET_CRS)
     gdf.columns = [c.lower() for c in gdf.columns]   # normalise column names to lowercase
+    gdf = gdf.rename_geometry('geom')                 # rename geometry column to geom (matches Japan portfolio convention)
     gdf.to_postgis(
         name=table,
         con=engine,
@@ -99,11 +100,11 @@ def main() -> None:
     with engine.connect() as conn:
         conn.execute(text(
             'CREATE INDEX IF NOT EXISTS idx_states_geom '
-            'ON admin_us.states USING GIST (geometry)'
+            'ON admin_us.states USING GIST (geom)'
         ))
         conn.execute(text(
             'CREATE INDEX IF NOT EXISTS idx_counties_geom '
-            'ON admin_us.counties USING GIST (geometry)'
+            'ON admin_us.counties USING GIST (geom)'
         ))
         conn.commit()
     print('  → Spatial indexes created.')
