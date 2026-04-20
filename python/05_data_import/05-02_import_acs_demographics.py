@@ -44,7 +44,7 @@ import sys
 
 import pandas as pd
 from census import Census
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 
 # ---------------------------------------------------------------------------
 # Credentials
@@ -210,9 +210,35 @@ engine = create_engine(
 )
 
 # ---------------------------------------------------------------------------
+# Helper
+# ---------------------------------------------------------------------------
+def already_imported(year: int) -> bool:
+    """Return True if data for survey_year already exists in the target table."""
+    insp = inspect(engine)
+    if not insp.has_table(TABLE_ACS, schema='census_us'):
+        return False   # table does not exist yet — first run
+    with engine.connect() as conn:
+        result = conn.execute(
+            text(f'SELECT COUNT(*) FROM census_us.{TABLE_ACS} WHERE survey_year = :year'),
+            {'year': year}
+        )
+        return result.scalar() > 0
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
+
+    # ------------------------------------------------------------------
+    # 0. Duplicate check
+    # ------------------------------------------------------------------
+    if already_imported(TARGET_YEAR):
+        print(f'[ABORTED] survey_year={TARGET_YEAR} is already loaded in '
+              f'census_us.{TABLE_ACS}.')
+        print('  → To overwrite: set IF_EXISTS = "replace" and re-run.')
+        print('  → To add a new year: change TARGET_YEAR.')
+        return
 
     # ------------------------------------------------------------------
     # 1. Fetch ACS 5-year data from Census API
