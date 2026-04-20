@@ -35,6 +35,7 @@ import my_access as ma
 TARGET_DB   = 'gis'         # PostgreSQL database name
 TARGET_YEAR = 2022          # TIGER/Line vintage year (use consistent year across scripts)
 TARGET_CRS  = 4326          # Output CRS: WGS84 (matches Japan portfolio convention)
+PG_HOST     = 'localhost'   # PostgreSQL host (change if DB is on a remote server)
 PG_PORT     = 5432          # PostgreSQL port (default: 5432)
 
 # Table names in admin_us schema
@@ -50,7 +51,7 @@ IF_EXISTS = 'replace'
 # Database connection
 # ---------------------------------------------------------------------------
 engine = create_engine(
-    f'postgresql+psycopg2://{ma.pg_user()}:{ma.pg_pass()}@localhost:{PG_PORT}/{TARGET_DB}'
+    f'postgresql+psycopg2://{ma.pg_user()}:{ma.pg_pass()}@{PG_HOST}:{PG_PORT}/{TARGET_DB}'
 )
 
 # ---------------------------------------------------------------------------
