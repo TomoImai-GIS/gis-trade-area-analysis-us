@@ -125,18 +125,21 @@ gis-trade-area-analysis-us/
 │   ├── 03_visualization/    # コロプレス（income, poverty rate, population density等）
 │   └── 04_maintenance/      # スキーマ設計・インデックス再構築・メンテナンス系（非公開）
 ├── python/
-│   ├── 00_data_pipeline/    # ★Census API自動取得（日本版にない強み）
+│   ├── 00_data_pipeline/    # 将来の自動化・定期更新パイプライン用（温存）
 │   ├── 01_data_analytics/   # 散布図・回帰（poverty vs income density等）
 │   ├── 02_QGIS_automation/  # マルチレイヤー地図自動生成
 │   ├── 03_data_cleansing/   # データ品質チェック・クレンジング
 │   ├── 04_data_conversion/  # CSV/GeoJSON/Shapefile変換
+│   ├── 05_data_import/      # ★TIGER/Line・ACS初回取込スクリプト（日本版05系に相当）
 │   └── 99_snippets/
-│       └── gis_utils/       # FIPS Code処理、State Plane CRS変換、US住所ジオコーディング
+│       └── gis_utils/       # FIPS Code処理、State Plane CRS変換、Census APIラッパー
 ├── data/                    # サンプルCSV（TIGER/ACSサブセット）
 ├── output/
 │   ├── sql/                 # SQL + QGISで生成したマップ出力例
 │   └── python/              # Pythonスクリプトで生成したチャート・プロット
-└── docs/                    # ポートフォリオ向け分析資料・ACSスキーマ設計等
+└── docs/
+    ├── analysis/            # ポートフォリオ向け分析レポート・考察
+    └── images/              # 図表・マップ画像
 ```
 
 ### 5-2. 公開／非公開の方針
@@ -147,7 +150,13 @@ gis-trade-area-analysis-us/
 | `sql/02_analysis/` | ✅ 公開 | |
 | `sql/03_visualization/` | ✅ 公開 | |
 | `sql/04_maintenance/` | 🔒 非公開 | `.gitignore` 登録済み。ローカルのみ管理 |
-| `python/` 全フォルダ | ✅ 公開 | |
+| `python/00_data_pipeline/` | ✅ 公開 | 将来の自動化用として温存 |
+| `python/01_data_analytics/` | ✅ 公開 | |
+| `python/02_QGIS_automation/` | ✅ 公開 | |
+| `python/03_data_cleansing/` | ✅ 公開 | |
+| `python/04_data_conversion/` | ✅ 公開 | |
+| `python/05_data_import/` | ✅ 公開 | TIGER/Line・ACS取込スクリプト |
+| `python/99_snippets/` | ✅ 公開 | |
 | `data/` | ✅ 公開 | サンプルデータのみ（大容量ファイルは output 同様 .gitignore 対象） |
 | `output/` | ✅ 公開 | PNG/CSV等の生成物は `.gitignore` で除外 |
 | `docs/` | ✅ 公開 | ポートフォリオ向け資料 |
