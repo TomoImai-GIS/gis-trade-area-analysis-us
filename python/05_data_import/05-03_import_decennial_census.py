@@ -3,7 +3,7 @@
 Fetch Decennial Census data from the Census API and import to PostgreSQL (census_us schema)
 
 Targets  : County-level population and age/sex data (national coverage)
-Source   : US Census Bureau Decennial Census via census library (API key required)
+Source   : US Census Bureau Decennial Census via direct HTTP request to Census API
 Output   : census_us.decennial_census
 
 Design policy:
@@ -48,14 +48,16 @@ Join example (SQL):
     AND   a.survey_year = 2022;
 
 Execution   : PyCharm or any standard Python environment (not QGIS)
-Requirements: census, pandas, sqlalchemy, psycopg2,
+Requirements: requests, pandas, sqlalchemy, psycopg2,
               AccessKeys/my_access.py
+Note        : Uses direct HTTP requests to the Census API instead of the census library,
+              because dhc endpoint support varies by census library version.
 """
 
 import sys
 
 import pandas as pd
-from census import Census
+import requests
 from sqlalchemy import create_engine, inspect, text
 
 # ---------------------------------------------------------------------------
@@ -210,7 +212,7 @@ engine = create_engine(
 )
 
 # ---------------------------------------------------------------------------
-# Helper
+# Helper functions
 # ---------------------------------------------------------------------------
 def already_imported(year: int) -> bool:
     """Return True if data for census_year already exists in the target table."""
@@ -223,6 +225,27 @@ def already_imported(year: int) -> bool:
             {'year': year}
         )
         return result.scalar() > 0
+
+
+def fetch_dhc(year: int, variables: tuple, api_key: str) -> list:
+    """
+    Fetch Decennial Census DHC data via direct HTTP request.
+    Returns a list of dicts (one per county), matching the census library format.
+    Uses direct requests instead of census library to avoid dhc endpoint version issues.
+    """
+    vars_str = ','.join(variables)
+    url = (
+        f'https://api.census.gov/data/{year}/dec/dhc'
+        f'?get={vars_str}'
+        f'&for=county:*'
+        f'&in=state:*'
+        f'&key={api_key}'
+    )
+    response = requests.get(url, timeout=120)
+    response.raise_for_status()
+    data = response.json()          # [[header1, header2, ...], [val1, val2, ...], ...]
+    headers = data[0]
+    return [dict(zip(headers, row)) for row in data[1:]]
 
 
 # ---------------------------------------------------------------------------
@@ -244,11 +267,7 @@ def main() -> None:
     # 1. Fetch Decennial Census data from Census API
     # ------------------------------------------------------------------
     print(f'Fetching Decennial Census {CENSUS_YEAR} data ...')
-    c = Census(CENSUS_API_KEY, year=CENSUS_YEAR)
-    raw = c.dhc.get(
-        DEC_VARS,
-        {'for': 'county:*', 'in': 'state:*'}
-    )
+    raw = fetch_dhc(CENSUS_YEAR, DEC_VARS, CENSUS_API_KEY)
     print(f'  → {len(raw):,} records fetched.')
 
     # ------------------------------------------------------------------
@@ -329,7 +348,10 @@ if __name__ == '__main__':
 #   Use census_us.acs_demographics for median_hh_income and below_poverty.
 #
 # Troubleshooting:
-#   AttributeError: Census has no attribute 'dhc'
-#     → pip install --upgrade census  (dhc endpoint requires census >= 0.8.19)
-#   KeyError on API response
-#     → verify CENSUS_API_KEY is valid and CENSUS_YEAR=2020
+#   requests.exceptions.HTTPError 400/404
+#     → verify CENSUS_API_KEY is valid
+#     → verify CENSUS_YEAR=2020 (DHC file is 2020 only)
+#   requests not found
+#     → pip install requests  (usually pre-installed)
+#   Timeout error
+#     → increase timeout value in fetch_dhc() call (default: 120s)
