@@ -96,29 +96,63 @@ Table fetched:
 
 ### 3-1. TIGER/Line Column Structure
 
-After import via `pygris` and reprojection to WGS84 (EPSG:4326), key columns are:
+After import via `pygris` and reprojection to WGS84 (EPSG:4326), all column names are lowercased and the geometry column is renamed from `geometry` to `geom`.
 
-**`admin_us.states`**
+**`admin_us.states`** — all columns
 
 | Column | Type | Notes |
 |--------|------|-------|
-| `statefp` | varchar | 2-digit state FIPS code (e.g. `'06'` = California) |
-| `stusps` | varchar | 2-letter postal abbreviation (e.g. `'CA'`) |
-| `name` | varchar | Full state name |
-| `geom` | geometry | MultiPolygon, WGS84 (EPSG:4326) |
-| *(other TIGER cols)* | | `affgeoid`, `geoid`, `lsad`, `aland`, `awater` etc. |
+| `statefp` | varchar | 2-digit state FIPS code (e.g. `'06'` = California) — **primary join key to counties** |
+| `statens` | varchar | State ANSI/GNIS numeric code (e.g. `'01779778'`) — Census internal identifier, rarely used in analysis |
+| `affgeoid` | varchar | American FactFinder geographic identifier (e.g. `'0400000US06'`) — long-form geoid used in some Census products |
+| `geoid` | varchar | Same as `statefp` for states (2-digit) |
+| `stusps` | varchar | 2-letter postal abbreviation (e.g. `'CA'`) — useful for display and labelling |
+| `name` | varchar | Full state name (e.g. `'California'`) |
+| `lsad` | varchar | Legal/Statistical Area Description code — `'00'` = State for all rows in this table |
+| `aland` | bigint | **Land area in square metres** — use as denominator for population density; excludes water bodies |
+| `awater` | bigint | Water area in square metres (lakes, rivers, coastal water within legal boundary) |
+| `geom` | geometry(MultiPolygon, 4326) | State boundary polygon, WGS84 (EPSG:4326); reprojected from NAD83 by import script |
 
-**`admin_us.counties`**
+**`admin_us.counties`** — all columns
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `statefp` | varchar | 2-digit state FIPS code |
-| `countyfp` | varchar | 3-digit county FIPS code |
-| `geoid` | varchar | 5-digit unique national identifier = statefp + countyfp |
+| `countyfp` | varchar | 3-digit county FIPS code (e.g. `'037'` = Los Angeles County) |
+| `countyns` | varchar | County ANSI/GNIS numeric code — Census internal identifier, rarely used in analysis |
+| `affgeoid` | varchar | American FactFinder geographic identifier (e.g. `'0500000US06037'`) |
+| `geoid` | varchar | **5-digit unique national identifier = statefp + countyfp** (e.g. `'06037'`) — **primary join key to all census_us tables** |
 | `name` | varchar | County name without type (e.g. `'Los Angeles'`) |
-| `namelsad` | varchar | Full name including type (e.g. `'Los Angeles County'`) |
-| `geom` | geometry | MultiPolygon, WGS84 (EPSG:4326) |
-| *(other TIGER cols)* | | `affgeoid`, `lsad`, `aland`, `awater` etc. |
+| `namelsad` | varchar | Full name including legal type (e.g. `'Los Angeles County'`) — use for display labels |
+| `stusps` | varchar | 2-letter state postal abbreviation (e.g. `'CA'`) — convenience column; avoids joining to states table for state labels |
+| `state_name` | varchar | Full state name (e.g. `'California'`) — same convenience purpose as `stusps` |
+| `lsad` | varchar | Legal/Statistical Area Description code — indicates the county's legal type (see table below) |
+| `aland` | bigint | **Land area in square metres** — **recommended denominator for population density calculations**; pre-calculated from full TIGER/Line data (more accurate than `ST_Area(geom)` on the cb=True simplified polygon) |
+| `awater` | bigint | Water area in square metres — large values indicate counties with significant lakes or coastal water (e.g. island counties) |
+| `geom` | geometry(MultiPolygon, 4326) | County boundary polygon, WGS84 (EPSG:4326) |
+
+`lsad` values found in the counties table:
+
+| `lsad` | Legal type | Examples |
+|--------|-----------|---------|
+| `'06'` | County | Most US counties |
+| `'07'` | City and Borough | Alaska (e.g. Juneau City and Borough) |
+| `'12'` | Municipality | Puerto Rico municipalities |
+| `'13'` | Borough | Alaska (e.g. Matanuska-Susitna Borough) |
+| `'15'` | Census Area | Alaska unorganised areas (e.g. Yukon-Koyukuk Census Area) |
+| `'25'` | City | Independent cities (e.g. Baltimore City, MD) |
+| `'37'` | District | District of Columbia |
+
+> **Population density recipe using `aland`:**
+> ```sql
+> SELECT geoid, namelsad,
+>        ROUND(aland / 1e6, 1)                                    AS land_area_km2,
+>        ROUND(total_pop::numeric / NULLIF(aland / 1e6, 0), 1)   AS pop_per_km2
+> FROM   admin_us.counties
+> JOIN   census_us.acs_demographics USING (geoid)
+> WHERE  survey_year = 2022;
+> ```
+> `aland / 1e6` converts m² → km². Use `/ 2589988.11` for square miles.
 
 `geoid` is the primary join key between `admin_us.counties` and all `census_us` tables. It is equivalent to Japan's `city_code`.
 
