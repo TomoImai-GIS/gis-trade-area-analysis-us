@@ -258,7 +258,17 @@ def main() -> None:
     df = df.rename(columns=RENAME_MAP)
 
     # ------------------------------------------------------------------
-    # 3. Add structural columns
+    # 3. Drop Census API auto-appended columns
+    # ------------------------------------------------------------------
+    # The Census API automatically appends a GEO_ID field (e.g. "0500000US01001")
+    # that was not requested. It is redundant with our geoid column and causes
+    # a stray NULL column if not removed before the numeric conversion step.
+    api_extras = [c for c in df.columns if c.upper() == 'GEO_ID']
+    if api_extras:
+        df = df.drop(columns=api_extras)
+
+    # ------------------------------------------------------------------
+    # 4. Add structural columns
     # ------------------------------------------------------------------
     # geoid: 5-digit unique county identifier — joins to admin_us.counties.geoid
     df['geoid'] = df['statefp'] + df['countyfp']
