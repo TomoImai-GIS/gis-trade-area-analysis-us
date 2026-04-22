@@ -221,14 +221,19 @@ The following columns are not returned by the Census API. They are constructed b
 gis database
 ├── admin_us schema                  ← administrative boundaries (TIGER/Line)
 │   ├── states                       ← US states + territories (PostGIS)
-│   └── counties                     ← US counties (PostGIS) — primary join layer
+│   ├── counties                     ← US counties, TIGER/Line 2022 (PostGIS) — join layer for ACS
+│   └── counties_2020                ← US counties, TIGER/Line 2020 (PostGIS) — join layer for Decennial
+│                                      (required because CT reorganised its counties in 2022;
+│                                       see Known Issues § Connecticut county reorganisation)
 │
 └── census_us schema                 ← Census demographic data
     ├── acs_demographics             ← ACS 5-year estimates (multi-year, survey_year key)
     └── decennial_census             ← Decennial Census full counts (multi-year, census_year key)
 ```
 
-Join key: `admin_us.counties.geoid` ↔ `census_us.acs_demographics.geoid` ↔ `census_us.decennial_census.geoid`
+Join keys:
+- ACS:        `admin_us.counties.geoid`      ↔ `census_us.acs_demographics.geoid`
+- Decennial:  `admin_us.counties_2020.geoid` ↔ `census_us.decennial_census.geoid`
 
 ### 4-2. `admin_us.states` Table
 
@@ -246,11 +251,17 @@ Key columns:
 
 Spatial index: `idx_states_geom ON admin_us.states USING GIST (geom)`
 
-### 4-3. `admin_us.counties` Table
+### 4-3. `admin_us.counties` and `admin_us.counties_2020` Tables
 
-Created by `05-01_import_tiger_boundaries.py`.
+Both created by `05-01_import_tiger_boundaries.py` with different `TARGET_YEAR` and `TABLE_COUNTIES` parameters.
 
-Key columns:
+| Parameter | `counties` (2022) | `counties_2020` (2020) |
+|-----------|-------------------|------------------------|
+| `TARGET_YEAR` | `2022` | `2020` |
+| `TABLE_COUNTIES` | `'counties'` | `'counties_2020'` |
+| Use with | ACS 5-year data | Decennial Census 2020 data |
+
+Key columns (identical in both tables):
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -262,6 +273,8 @@ Key columns:
 | `geom` | geometry(MultiPolygon, 4326) | WGS84 |
 
 Spatial index: `idx_counties_geom ON admin_us.counties USING GIST (geom)`
+
+> **Why two vintage tables?** Connecticut reorganised its 8 legacy counties into 9 Planning Regions effective 2022. TIGER/Line 2022 uses the new GEOIDs (09110–09190); the 2020 Decennial Census API uses the old county GEOIDs (09001–09015). Joining `counties` (2022) to `decennial_census` (2020) on `geoid` produces no matches for any CT county, causing Connecticut to go entirely blank on choropleth maps. Using `counties_2020` for Decennial joins restores correct CT coverage. See also Known Issues § Connecticut county reorganisation.
 
 ### 4-4. `census_us.acs_demographics` Table
 
@@ -389,7 +402,8 @@ ORDER BY elderly_rate_pct DESC;
 | Table | Content | Rows | Loaded |
 |-------|---------|------|--------|
 | `admin_us.states` | TIGER/Line 2022 (cb=True), WGS84 | ~56 | 2026-04-21 |
-| `admin_us.counties` | TIGER/Line 2022 (cb=True), WGS84 | ~3,235 | 2026-04-21 |
+| `admin_us.counties` | TIGER/Line 2022 (cb=True), WGS84 — use with ACS | ~3,235 | 2026-04-21 |
+| `admin_us.counties_2020` | TIGER/Line 2020 (cb=True), WGS84 — use with Decennial | ~3,235 | 2026-04-23 |
 | `census_us.acs_demographics` | ACS 5-year 2022 (survey_year=2022) | ~3,221 | 2026-04-21 |
 | `census_us.decennial_census` | Decennial Census 2020 DHC (census_year=2020) | ~3,221 | 2026-04-21 |
 
@@ -401,6 +415,7 @@ Row count note: County-level rows in census tables (~3,221) are fewer than TIGER
 
 | Item | Detail |
 |------|--------|
+| **Connecticut county reorganisation** | Connecticut abolished its 8 legacy counties as governmental units in 2022 and replaced them with 9 Planning Regions. TIGER/Line 2022 (`admin_us.counties`) reflects the new GEOIDs (09110–09190); the 2020 Decennial Census API still uses the old county GEOIDs (09001–09015). Joining the 2022 geometry to Decennial 2020 data on `geoid` produces no matches for any CT county. **Fix:** use `admin_us.counties_2020` (TIGER/Line 2020) as the geometry source for Decennial queries. `sql/03_visualization/03-01_elderly_rate_county.sql` handles this automatically via the `geom_src` CTE when `data_source = 'decennial'`. |
 | ACS sentinel values | The Census API returns `-666666666` (data not available) and `-999999999` (data withheld) for counties too small for reliable estimates. These are stored as-is. Filter with `WHERE median_hh_income > 0` in SQL queries. |
 | ACS Margin of Error | This script fetches estimates only (`_E` suffix). MOE variables (`_M` suffix) are omitted. For publication-quality analysis, add MOE variables to `ACS_VARS` and `RENAME_MAP` in `05-02`. |
 | GEO_ID stray column | The Census API auto-appends an unrequested `GEO_ID` field (e.g. `'0500000US01001'`) to all responses. Both `05-02` and `05-03` explicitly drop this field before loading to avoid a stray NULL column in PostgreSQL. |
