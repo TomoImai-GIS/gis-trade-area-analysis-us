@@ -1,0 +1,172 @@
+# GIS Trade Area Analysis — US
+
+> Spatial analysis toolkit for the United States — PostGIS SQL templates and Python data pipelines for county-level location intelligence.
+
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12%2B-336791?logo=postgresql&logoColor=white)
+![PostGIS](https://img.shields.io/badge/PostGIS-3.0%2B-4CAF50)
+![QGIS](https://img.shields.io/badge/QGIS-3.x-589632?logo=qgis&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)
+
+---
+
+## Overview
+
+A spatial analysis toolkit built on PostgreSQL + PostGIS and Python, focused on US county-level administrative boundary and census data. The SQL templates cover real-world business scenarios — demographic analysis, trade area sizing, and location intelligence — and can be run immediately by editing the `WITH params AS (...)` block at the top.
+
+Census data covers **~3,221 counties** across the United States sourced from two complementary datasets:
+- **ACS 5-year estimates (2022)** — annual updates, broad variable set, sample-based estimates
+- **Decennial Census 2020** — full enumeration (100% count), highest accuracy, limited variables
+
+Administrative boundary geometries are sourced from the US Census Bureau TIGER/Line program via the `pygris` library.
+
+> **Companion repository:** [gis-trade-area-analysis](https://github.com/TomoImai-GIS/gis-trade-area-analysis) — equivalent toolkit for Japan, covering 1,917 municipalities with e-Stat census data.
+
+---
+
+## Sample Output
+
+![Elderly rate choropleth — contiguous US](output/sql/03-01_elderly_rate_county_wide.png)
+*Elderly rate by county (48 contiguous states) — generated with [`sql/03_visualization/03-01_elderly_rate_county.sql`](sql/03_visualization/03-01_elderly_rate_county.sql) + QGIS. ACS 5-year 2022. Data source switchable to Decennial Census 2020 via a single parameter.*
+
+![Elderly rate choropleth — NY metro area](output/sql/03-01_elderly_rate_county_zoomed.png)
+*Zoomed view — New York metropolitan area. State boundaries overlaid from `admin_us.states`.*
+
+**Notable patterns visible in the maps:**
+
+| Pattern | Explanation |
+|---------|-------------|
+| Very low elderly rate (~3–10%) | Military base counties (Fort Benning GA, Camp Lejeune NC, Fort Riley KS), college towns (BYU Provo UT, Texas A&M TX), Native American reservation counties (Pine Ridge SD), oil-boom counties (McKenzie ND — Bakken shale) |
+| Extremely high elderly rate (57.9%) | Sumter County FL — home of **The Villages**, the largest planned retirement community in the US (~130,000+ residents, 55+ only) |
+| New England gap | Connecticut appears blank in the Decennial layer due to a 2022 county reorganisation (8 legacy counties → 9 Planning Regions). Handled in the query via a vintage-aware geometry CTE; see [Known Issues](docs/census_us_README.md#6-known-issues). |
+
+---
+
+## Use Cases
+
+### 👴 Demographic & Aging Analysis
+
+Map and rank counties by elderly population rate — useful for **healthcare facility planning**, **senior services market research**, and **retirement community site selection**.
+
+The query supports ACS 5-year estimates (more recent) and Decennial Census (more accurate for small counties) with a single parameter switch:
+
+```sql
+-- sql/03_visualization/03-01_elderly_rate_county.sql
+WITH params AS (
+    SELECT
+        'acs'        AS data_source,   -- 'acs' or 'decennial'
+        2022         AS acs_year,
+        2020         AS dec_year,
+        'contiguous' AS area_filter    -- 'all' / 'contiguous' / 'FL' / 'NY' / ...
+)
+```
+
+### 🏪 Trade Area Analysis *(planned)*
+
+Aggregate county-level population, elderly rate, household income, and poverty data within a defined trade area. The starting point for **retail site selection** and **franchise territory planning**.
+
+### 🗺️ Location Intelligence *(planned)*
+
+Reverse-geocode coordinates to county, calculate straight-line distances between points, and identify counties within a radius — foundational building blocks for location-based business analysis.
+
+---
+
+## SQL Templates
+
+→ **[Full template index](sql/README.md)**
+
+| Category | File | Purpose |
+|----------|------|---------|
+| [`sql/03_visualization/`](sql/03_visualization/) | [03-01_elderly_rate_county.sql](sql/03_visualization/03-01_elderly_rate_county.sql) | County polygons with elderly rate for QGIS choropleth — ACS or Decennial, parameterised coverage |
+| `sql/01_basic/` | *(planned)* | Reverse geocoding, county lookup, distance calculation |
+| `sql/02_analysis/` | *(planned)* | Trade area population, demographic ranking, income/poverty analysis |
+
+---
+
+## Python Data Pipelines
+
+Python scripts for importing US Census Bureau data into PostgreSQL. All scripts use a `WITH params AS (...)` style parameters section at the top and require a `my_access.py` credentials module.
+
+| Script | Purpose | Output table |
+|--------|---------|--------------|
+| [`05-01_import_tiger_boundaries.py`](python/05_data_import/05-01_import_tiger_boundaries.py) | Download TIGER/Line shapefiles via `pygris`; reproject to WGS84 | `admin_us.states`, `admin_us.counties` |
+| [`05-02_import_acs_demographics.py`](python/05_data_import/05-02_import_acs_demographics.py) | Fetch ACS 5-year estimates from Census API (49 age variables + income + poverty) | `census_us.acs_demographics` |
+| [`05-03_import_decennial_census.py`](python/05_data_import/05-03_import_decennial_census.py) | Fetch 2020 Decennial Census DHC via direct HTTP request (49 age variables) | `census_us.decennial_census` |
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- PostgreSQL 12+ with PostGIS 3.0+
+- TIGER/Line boundaries loaded into `admin_us` schema
+- Census data loaded into `census_us` schema
+
+See [Data Sources](#data-sources) below. For full schema design and step-by-step ingestion instructions, see [`docs/census_us_README.md`](docs/census_us_README.md).
+
+### 1. Enable PostGIS
+
+```sql
+CREATE EXTENSION IF NOT EXISTS postgis;
+```
+
+### 2. Import boundary and census data
+
+```bash
+# Edit sys.path and credentials in each script before running
+python python/05_data_import/05-01_import_tiger_boundaries.py
+python python/05_data_import/05-02_import_acs_demographics.py
+python python/05_data_import/05-03_import_decennial_census.py
+```
+
+### 3. Run your first query
+
+Open `sql/03_visualization/03-01_elderly_rate_county.sql` in QGIS DB Manager, set geometry column to `geom` (SRID 4326), and load as a PostGIS layer.
+
+---
+
+## Data Sources
+
+| Dataset | Provider | Access | Notes |
+|---------|----------|--------|-------|
+| TIGER/Line boundary files | [US Census Bureau, Geography Division](https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html) | `pygris` library (no API key) | States + Counties, 2020 & 2022 vintages, WGS84 |
+| ACS 5-year estimates | [US Census Bureau, American Community Survey](https://www.census.gov/programs-surveys/acs) | Census API (free key required) | 2022 vintage; B01001, B01002, B19013, B17001 tables |
+| Decennial Census 2020 DHC | [US Census Bureau, 2020 Census](https://www.census.gov/programs-surveys/decennial-census/decade/2020/2020-census-main.html) | Census API (free key required) | P12 Sex by Age (49 variables) |
+
+Census API key registration: https://api.census.gov/data/key_signup.html
+
+> For full data source documentation, schema design, variable mappings, and known issues (including the Connecticut county reorganisation), see [`docs/census_us_README.md`](docs/census_us_README.md).
+
+---
+
+## Repository Layout
+
+```
+gis-trade-area-analysis-us/
+├── sql/                          # SQL templates
+│   ├── README.md                 # Full template index with code examples
+│   ├── 01_basic/                 # Foundational spatial operations (planned)
+│   ├── 02_analysis/              # Core spatial analysis (planned)
+│   └── 03_visualization/         # QGIS / map output queries
+│       └── 03-01_elderly_rate_county.sql
+├── python/
+│   └── 05_data_import/           # Census data ingestion scripts
+│       ├── 05-01_import_tiger_boundaries.py
+│       ├── 05-02_import_acs_demographics.py
+│       └── 05-03_import_decennial_census.py
+├── output/
+│   ├── sql/                      # Map output from SQL + QGIS workflows
+│   └── python/                   # Chart output from Python scripts
+└── docs/
+    ├── README.md                 # Documentation index
+    └── census_us_README.md       # Census data schema & ingestion design
+```
+
+---
+
+## Attribution
+
+Data used in this repository is sourced from:
+
+- **US Census Bureau** — TIGER/Line shapefiles, ACS 5-year estimates, and Decennial Census data. Free for public use. [Terms of use](https://www.census.gov/about/policies/open-gov/open-data.html)
+- **OpenStreetMap contributors** — Basemap tiles used in QGIS visualisations. © OpenStreetMap contributors, ODbL. [Terms](https://www.openstreetmap.org/copyright)
