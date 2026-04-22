@@ -9,15 +9,14 @@
 -- ============================================
 -- purpose : Export county-level elderly population and rate with geometry for
 --           choropleth map rendering in QGIS.
---           Coverage is controlled by area_filter in the params block (3 options):
---             'all'        — all counties (national, including AK/HI/territories)
---             'contiguous' — 48 contiguous states only (excludes AK, HI, territories)
---             '<STUSPS>'   — single state by 2-letter postal code (e.g. 'FL', 'NY', 'TX')
+--           Data source and coverage are controlled by the params block:
+--             data_source  — 'acs' (ACS 5-year estimates) or 'decennial' (Decennial Census)
+--             area_filter  — 'all' / 'contiguous' / '<STUSPS>'
 --           Designed to be overlaid with the state boundary layer from admin_us.states.
--- input   : survey_year, area_filter — set in params block below
+-- input   : data_source, acs_year, dec_year, area_filter — set in params block below
 -- output  : county polygons with elderly rate and demographic breakdown —
 --           load directly into QGIS as a PostGIS layer
--- tables  : admin_us.counties, census_us.acs_demographics
+-- tables  : admin_us.counties, census_us.acs_demographics, census_us.decennial_census
 -- created : 2026-04-22
 -- updated : 2026-04-22
 -- ============================================
@@ -26,12 +25,38 @@
 -- ============================================
 WITH params AS (
     SELECT
-        2022         AS survey_year,   -- ACS 5-year vintage year (match the imported year in census_us.acs_demographics)
+        'acs'        AS data_source,   -- 'acs'        → ACS 5-year estimates (census_us.acs_demographics)
+                                       -- 'decennial'  → Decennial Census full count (census_us.decennial_census)
+        2022         AS acs_year,      -- ACS vintage year        (used when data_source = 'acs')
+        2020         AS dec_year,      -- Decennial Census year   (used when data_source = 'decennial')
         'contiguous' AS area_filter    -- 'all'        → all counties (national, including AK/HI/territories)
                                        -- 'contiguous' → 48 contiguous states only (excludes AK, HI, PR, VI, GU, AS, MP)
                                        -- '<STUSPS>'   → single state, e.g. 'FL'  'NY'  'TX'  'CA'
-)
+),
 -- ============================================
+
+-- Source abstraction: select from ACS or Decennial based on data_source.
+-- Column names are identical across both tables (by design), so UNION ALL works cleanly.
+-- The WHERE clause on data_source ensures only one branch returns rows.
+src AS (
+    -- ACS branch
+    SELECT geoid, total_pop,
+           male_65_66,   male_67_69,   male_70_74,   male_75_79,   male_80_84,   male_85_over,
+           female_65_66, female_67_69, female_70_74, female_75_79, female_80_84, female_85_over
+    FROM   census_us.acs_demographics
+    WHERE  survey_year = (SELECT acs_year    FROM params)
+      AND  (SELECT data_source FROM params) = 'acs'
+
+    UNION ALL
+
+    -- Decennial branch
+    SELECT geoid, total_pop,
+           male_65_66,   male_67_69,   male_70_74,   male_75_79,   male_80_84,   male_85_over,
+           female_65_66, female_67_69, female_70_74, female_75_79, female_80_84, female_85_over
+    FROM   census_us.decennial_census
+    WHERE  census_year = (SELECT dec_year    FROM params)
+      AND  (SELECT data_source FROM params) = 'decennial'
+)
 
 -- [MAIN QUERY] No changes needed below this line
 SELECT
@@ -40,13 +65,14 @@ SELECT
     c.namelsad,
     c.stusps,
     c.state_name,
-    a.total_pop,
+    (SELECT data_source FROM params)                            AS data_source,
+    s.total_pop,
 
     -- 65+ population: sum of all age buckets >= 65 (male + female)
-    (  a.male_65_66   + a.male_67_69   + a.male_70_74   + a.male_75_79
-     + a.male_80_84   + a.male_85_over
-     + a.female_65_66 + a.female_67_69 + a.female_70_74 + a.female_75_79
-     + a.female_80_84 + a.female_85_over
+    (  s.male_65_66   + s.male_67_69   + s.male_70_74   + s.male_75_79
+     + s.male_80_84   + s.male_85_over
+     + s.female_65_66 + s.female_67_69 + s.female_70_74 + s.female_75_79
+     + s.female_80_84 + s.female_85_over
     )                                                           AS pop_elderly,
 
     -- Elderly rate (%)
@@ -54,20 +80,18 @@ SELECT
     -- (PostgreSQL has no ROUND(double precision, integer) overload.)
     -- NULLIF guards against division by zero; returns NULL for sentinel-value counties.
     ROUND(
-        (  a.male_65_66   + a.male_67_69   + a.male_70_74   + a.male_75_79
-         + a.male_80_84   + a.male_85_over
-         + a.female_65_66 + a.female_67_69 + a.female_70_74 + a.female_75_79
-         + a.female_80_84 + a.female_85_over
-        )::numeric / NULLIF(a.total_pop::numeric, 0) * 100,
+        (  s.male_65_66   + s.male_67_69   + s.male_70_74   + s.male_75_79
+         + s.male_80_84   + s.male_85_over
+         + s.female_65_66 + s.female_67_69 + s.female_70_74 + s.female_75_79
+         + s.female_80_84 + s.female_85_over
+        )::numeric / NULLIF(s.total_pop::numeric, 0) * 100,
         1
     )                                                           AS elderly_rate,
 
     c.geom                                                      -- geometry for QGIS rendering
 
-FROM  admin_us.counties         c
-JOIN  census_us.acs_demographics a
-      ON  c.geoid       = a.geoid
-      AND a.survey_year = (SELECT survey_year FROM params)
+FROM  admin_us.counties  c
+JOIN  src                s  ON c.geoid = s.geoid
 
 WHERE
     -- Coverage filter: controlled by params.area_filter
@@ -77,8 +101,8 @@ WHERE
         ELSE                   c.stusps = (SELECT area_filter FROM params)   -- single state by postal code
     END
 
-    -- Exclude ACS sentinel values (-666666666 / -999999999): data unavailable for very small counties
-    AND a.total_pop > 0
+    -- Exclude sentinel values (-666666666 / -999999999): unavailable for very small counties
+    AND s.total_pop > 0
 
 ORDER BY c.stusps, c.name;
 
@@ -94,40 +118,37 @@ ORDER BY c.stusps, c.name;
 --          WHERE stusps NOT IN ('AK', 'HI', 'PR', 'VI', 'GU', 'AS', 'MP')
 --     Style: no fill, thin border (0.2–0.3px dark grey)
 --
+-- · data_source switching
+--     'acs'       : ACS 5-year pooled estimates; broader variable set; annual vintages.
+--                   Sentinel values (-666666666 / -999999999) possible for very small counties.
+--     'decennial' : Full enumeration (100% count); higher accuracy for small populations;
+--                   no income/poverty variables. Available for 2020 only in this repo.
+--     Both tables share identical column names (total_pop, male_65_66, etc.) by design,
+--     enabling direct comparison via the src CTE without any column renaming.
+--
 -- · Why ROUND fails without ::numeric
 --     Columns imported via pandas/SQLAlchemy are stored as double precision in PostgreSQL.
 --     PostgreSQL provides ROUND(numeric, integer) but NOT ROUND(double precision, integer).
---     Casting the numerator and NULLIF target to ::numeric resolves this.
---     (ROUND(double precision) without a scale argument does exist and rounds to integer.)
+--     Casting both operands to ::numeric resolves this.
 --
 -- · Choropleth classification suggestion for elderly_rate (5 classes):
 --     National median is approximately 20–22% as of 2022 ACS.
 --     Natural breaks (Jenks) or quantile classification recommended in QGIS.
 --
--- · ACS sentinel values:
---     The Census API returns -666666666 (not available) or -999999999 (withheld)
---     for very small counties. The WHERE total_pop > 0 filter removes these rows.
---
 -- · 65+ age bucket composition:
---     ACS B01001 splits the 65+ population into 6 fine-grained buckets per sex:
+--     ACS B01001 / Decennial P12 split the 65+ population into 6 fine-grained buckets per sex:
 --       65–66, 67–69, 70–74, 75–79, 80–84, 85+
 --     Summing all 12 (6 male + 6 female) gives the total elderly population.
---     These are estimates (_E suffix); Margin of Error is not included in this query.
---
--- · For Decennial Census comparison (full count vs. ACS estimate):
---     Replace census_us.acs_demographics with census_us.decennial_census
---     and change survey_year → census_year = 2020.
---     Column names (total_pop, male_65_66, etc.) are identical between the two tables.
 --
 -- [EXAMPLES]
---   All counties (national including AK/HI/territories):
---     area_filter = 'all'
+--   ACS 2022, 48 contiguous states:
+--     data_source = 'acs', acs_year = 2022, area_filter = 'contiguous'
 --
---   48 contiguous states only:
---     area_filter = 'contiguous'
+--   Decennial 2020, national:
+--     data_source = 'decennial', dec_year = 2020, area_filter = 'all'
 --
---   Single state (e.g. Florida):
---     area_filter = 'FL'
+--   ACS 2022, Florida only:
+--     data_source = 'acs', acs_year = 2022, area_filter = 'FL'
 --
 --   Sort by highest elderly rate:
 --     Change ORDER BY to: ORDER BY elderly_rate DESC NULLS LAST
