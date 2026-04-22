@@ -9,10 +9,12 @@
 -- ============================================
 -- purpose : Export county-level elderly population and rate with geometry for
 --           choropleth map rendering in QGIS.
---           Set contiguous_only = true to restrict to the 48 contiguous US states
---           (excludes AK, HI, and territories). Default: false (all counties).
+--           Coverage is controlled by area_filter in the params block (3 options):
+--             'all'        — all counties (national, including AK/HI/territories)
+--             'contiguous' — 48 contiguous states only (excludes AK, HI, territories)
+--             '<STUSPS>'   — single state by 2-letter postal code (e.g. 'FL', 'NY', 'TX')
 --           Designed to be overlaid with the state boundary layer from admin_us.states.
--- input   : survey_year, contiguous_only — set in params block below
+-- input   : survey_year, area_filter — set in params block below
 -- output  : county polygons with elderly rate and demographic breakdown —
 --           load directly into QGIS as a PostGIS layer
 -- tables  : admin_us.counties, census_us.acs_demographics
@@ -24,9 +26,10 @@
 -- ============================================
 WITH params AS (
     SELECT
-        2022  AS survey_year,       -- ACS 5-year vintage year (match the imported year in census_us.acs_demographics)
-        false AS contiguous_only    -- true  = contiguous US only (exclude AK, HI, PR, VI, GU, AS, MP)
-                                    -- false = all counties (national coverage including territories)
+        2022         AS survey_year,   -- ACS 5-year vintage year (match the imported year in census_us.acs_demographics)
+        'contiguous' AS area_filter    -- 'all'        → all counties (national, including AK/HI/territories)
+                                       -- 'contiguous' → 48 contiguous states only (excludes AK, HI, PR, VI, GU, AS, MP)
+                                       -- '<STUSPS>'   → single state, e.g. 'FL'  'NY'  'TX'  'CA'
 )
 -- ============================================
 
@@ -67,10 +70,12 @@ JOIN  census_us.acs_demographics a
       AND a.survey_year = (SELECT survey_year FROM params)
 
 WHERE
-    -- Contiguous US filter (controlled by params.contiguous_only)
-    (   NOT (SELECT contiguous_only FROM params)
-     OR c.stusps NOT IN ('AK', 'HI', 'PR', 'VI', 'GU', 'AS', 'MP')
-    )
+    -- Coverage filter: controlled by params.area_filter
+    CASE (SELECT area_filter FROM params)
+        WHEN 'all'        THEN true
+        WHEN 'contiguous' THEN c.stusps NOT IN ('AK', 'HI', 'PR', 'VI', 'GU', 'AS', 'MP')
+        ELSE                   c.stusps = (SELECT area_filter FROM params)   -- single state by postal code
+    END
 
     -- Exclude ACS sentinel values (-666666666 / -999999999): data unavailable for very small counties
     AND a.total_pop > 0
@@ -115,8 +120,14 @@ ORDER BY c.stusps, c.name;
 --     Column names (total_pop, male_65_66, etc.) are identical between the two tables.
 --
 -- [EXAMPLES]
---   Single state (e.g. Florida only):
---     Add to WHERE: AND c.stusps = 'FL'
+--   All counties (national including AK/HI/territories):
+--     area_filter = 'all'
+--
+--   48 contiguous states only:
+--     area_filter = 'contiguous'
+--
+--   Single state (e.g. Florida):
+--     area_filter = 'FL'
 --
 --   Sort by highest elderly rate:
 --     Change ORDER BY to: ORDER BY elderly_rate DESC NULLS LAST
