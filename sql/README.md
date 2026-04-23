@@ -53,8 +53,8 @@ The query calculates `pop_elderly` (sum of all 12 age buckets ≥ 65) and `elder
 ![Elderly rate choropleth — contiguous US](../output/sql/03-01_elderly_rate_county_wide.png)
 *Elderly rate by county (48 contiguous states, ACS 5-year 2022) — generated with 03-01_elderly_rate_county.sql + QGIS*
 
-![Elderly rate choropleth — NY metro area](../output/sql/03-01_elderly_rate_county_zoomed.png)
-*Zoomed view — New York metropolitan area*
+![Elderly rate choropleth — East Coast](../output/sql/03-01_elderly_rate_county_zoomed.png)
+*Zoomed view — East Coast (Mid-Atlantic to New England)*
 
 **Design notes:**
 
@@ -62,6 +62,36 @@ The query calculates `pop_elderly` (sum of all 12 age buckets ≥ 65) and `elder
 - `data_source = 'decennial'` uses `admin_us.counties_2020` (TIGER/Line 2020) + `census_us.decennial_census`
 - The two-vintage geometry approach is required because Connecticut reorganised its 8 legacy counties into 9 Planning Regions in 2022, changing GEOIDs. See [Known Issues](../docs/census_us_README.md#6-known-issues).
 - Both ACS and Decennial tables share identical column names by design, enabling the `src` CTE (UNION ALL) to switch data sources without any column renaming.
+
+---
+
+### 📍 Population Density Analysis
+
+Map county-level population concentration — useful for **retail site selection**, **logistics network planning**, and identifying urban/rural market segments.
+
+```sql
+-- 03-02_population_density_county.sql
+WITH params AS (
+    SELECT
+        'acs'        AS data_source,   -- 'acs' or 'decennial'
+        2022         AS acs_year,
+        2020         AS dec_year,
+        'contiguous' AS area_filter    -- 'all' / 'contiguous' / 'TX' / 'CA' / ...
+)
+```
+
+Both `pop_per_km2` and `pop_per_sq_mi` are output. Land area is taken from the TIGER/Line `aland` field — more accurate than `ST_Area()` on the cb=True simplified polygon. Logarithmic or quantile classification is recommended in QGIS as US county densities span several orders of magnitude (< 0.1 to > 27,000 persons/km²).
+
+![Population density choropleth — contiguous US](../output/sql/03-02_population_density_county_wide.png)
+*Population density by county (48 contiguous states, ACS 5-year 2022) — generated with 03-02_population_density_county.sql + QGIS*
+
+![Population density choropleth — East Coast](../output/sql/03-02_population_density_county_zoomed.png)
+*Zoomed view — East Coast (Mid-Atlantic to New England). The density gradient from Manhattan outward to suburban and rural counties is clearly visible.*
+
+**Design notes:**
+
+- `aland` (land area in m²) is sourced from `geom_src` (the geometry table), not from the census table. Dividing by `1e6` converts to km²; dividing by `2589988.11` converts to sq mi.
+- Same `geom_src` / `src` CTE structure as 03-01 — the Connecticut vintage mismatch is handled identically.
 
 ---
 

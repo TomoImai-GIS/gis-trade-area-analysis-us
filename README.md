@@ -28,14 +28,14 @@ Administrative boundary geometries are sourced from the US Census Bureau TIGER/L
 ![Population density choropleth — contiguous US](output/sql/03-02_population_density_county_wide.png)
 *Population density by county (48 contiguous states, persons/sq mi) — generated with [`sql/03_visualization/03-02_population_density_county.sql`](sql/03_visualization/03-02_population_density_county.sql) + QGIS. ACS 5-year 2022. Land area sourced from TIGER/Line `aland` field for accurate density calculation.*
 
-![Population density choropleth — NY metro area](output/sql/03-02_population_density_county_zoomed.png)
-*Zoomed view — New York metropolitan area. The density gradient from Manhattan outward to suburban and rural counties is clearly visible.*
+![Population density choropleth — East Coast](output/sql/03-02_population_density_county_zoomed.png)
+*Zoomed view — East Coast (Mid-Atlantic to New England). The density gradient from Manhattan outward to suburban and rural counties is clearly visible.*
 
 ![Elderly rate choropleth — contiguous US](output/sql/03-01_elderly_rate_county_wide.png)
 *Elderly rate by county (48 contiguous states) — generated with [`sql/03_visualization/03-01_elderly_rate_county.sql`](sql/03_visualization/03-01_elderly_rate_county.sql) + QGIS. ACS 5-year 2022. Data source switchable to Decennial Census 2020 via a single parameter.*
 
-![Elderly rate choropleth — NY metro area](output/sql/03-01_elderly_rate_county_zoomed.png)
-*Zoomed view — New York metropolitan area. State boundaries overlaid from `admin_us.states`.*
+![Elderly rate choropleth — East Coast](output/sql/03-01_elderly_rate_county_zoomed.png)
+*Zoomed view — East Coast (Mid-Atlantic to New England). State boundaries overlaid from `admin_us.states`.*
 
 **Notable patterns visible in the maps:**
 
