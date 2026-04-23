@@ -27,6 +27,7 @@ Production-ready PostGIS SQL templates for spatial analysis and location intelli
 | File | Purpose | Output |
 |------|---------|--------|
 | [03-01_elderly_rate_county.sql](03_visualization/03-01_elderly_rate_county.sql) | County polygons with elderly rate for QGIS choropleth. Switchable between ACS 5-year and Decennial Census; parameterised coverage (all / contiguous / single state). | PostGIS layer (geom, SRID 4326) |
+| [03-02_population_density_county.sql](03_visualization/03-02_population_density_county.sql) | County polygons with population density (persons/km² and persons/sq mi) for QGIS choropleth. Uses `aland` from TIGER/Line for accurate land area. Same data_source and area_filter params as 03-01. | PostGIS layer (geom, SRID 4326) |
 
 ---
 
