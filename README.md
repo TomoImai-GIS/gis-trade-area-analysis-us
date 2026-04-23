@@ -25,6 +25,12 @@ Administrative boundary geometries are sourced from the US Census Bureau TIGER/L
 
 ## Sample Output
 
+![Population density choropleth — contiguous US](output/sql/03-02_population_density_county_wide.png)
+*Population density by county (48 contiguous states, persons/sq mi) — generated with [`sql/03_visualization/03-02_population_density_county.sql`](sql/03_visualization/03-02_population_density_county.sql) + QGIS. ACS 5-year 2022. Land area sourced from TIGER/Line `aland` field for accurate density calculation.*
+
+![Population density choropleth — NY metro area](output/sql/03-02_population_density_county_zoomed.png)
+*Zoomed view — New York metropolitan area. The density gradient from Manhattan outward to suburban and rural counties is clearly visible.*
+
 ![Elderly rate choropleth — contiguous US](output/sql/03-01_elderly_rate_county_wide.png)
 *Elderly rate by county (48 contiguous states) — generated with [`sql/03_visualization/03-01_elderly_rate_county.sql`](sql/03_visualization/03-01_elderly_rate_county.sql) + QGIS. ACS 5-year 2022. Data source switchable to Decennial Census 2020 via a single parameter.*
 
@@ -33,11 +39,13 @@ Administrative boundary geometries are sourced from the US Census Bureau TIGER/L
 
 **Notable patterns visible in the maps:**
 
-| Pattern | Explanation |
-|---------|-------------|
-| Very low elderly rate (~3–10%) | Military base counties (Fort Benning GA, Camp Lejeune NC, Fort Riley KS), college towns (BYU Provo UT, Texas A&M TX), Native American reservation counties (Pine Ridge SD), oil-boom counties (McKenzie ND — Bakken shale) |
-| Extremely high elderly rate (57.9%) | Sumter County FL — home of **The Villages**, the largest planned retirement community in the US (~130,000+ residents, 55+ only) |
-| New England gap | Connecticut appears blank in the Decennial layer due to a 2022 county reorganisation (8 legacy counties → 9 Planning Regions). Handled in the query via a vintage-aware geometry CTE; see [Known Issues](docs/census_us_README.md#6-known-issues). |
+| Map | Pattern | Explanation |
+|-----|---------|-------------|
+| Density | Extreme concentration in Northeast corridor | New York County (Manhattan) tops ~27,000 persons/km²; density drops sharply westward from the Boston–Washington corridor |
+| Density | Very low density across the interior West | Wyoming, Montana, and Nevada counties often fall below 1 person/km² — frontier-county territory |
+| Elderly rate | Very low elderly rate (~3–10%) | Military base counties (Fort Benning GA, Camp Lejeune NC, Fort Riley KS), college towns (BYU Provo UT, Texas A&M TX), Native American reservation counties (Pine Ridge SD), oil-boom counties (McKenzie ND — Bakken shale) |
+| Elderly rate | Extremely high elderly rate (57.9%) | Sumter County FL — home of **The Villages**, the largest planned retirement community in the US (~130,000+ residents, 55+ only) |
+| Both | New England gap in Decennial layer | Connecticut appears blank when using Decennial Census due to a 2022 county reorganisation (8 legacy counties → 9 Planning Regions). Handled via a vintage-aware geometry CTE; see [Known Issues](docs/census_us_README.md#6-known-issues). |
 
 ---
 
@@ -77,6 +85,7 @@ Reverse-geocode coordinates to county, calculate straight-line distances between
 | Category | File | Purpose |
 |----------|------|---------|
 | [`sql/03_visualization/`](sql/03_visualization/) | [03-01_elderly_rate_county.sql](sql/03_visualization/03-01_elderly_rate_county.sql) | County polygons with elderly rate for QGIS choropleth — ACS or Decennial, parameterised coverage |
+| [`sql/03_visualization/`](sql/03_visualization/) | [03-02_population_density_county.sql](sql/03_visualization/03-02_population_density_county.sql) | County polygons with population density (persons/km² and persons/sq mi) — uses TIGER/Line `aland` for accurate land area |
 | `sql/01_basic/` | *(planned)* | Reverse geocoding, county lookup, distance calculation |
 | `sql/02_analysis/` | *(planned)* | Trade area population, demographic ranking, income/poverty analysis |
 
@@ -148,7 +157,8 @@ gis-trade-area-analysis-us/
 │   ├── 01_basic/                 # Foundational spatial operations (planned)
 │   ├── 02_analysis/              # Core spatial analysis (planned)
 │   └── 03_visualization/         # QGIS / map output queries
-│       └── 03-01_elderly_rate_county.sql
+│       ├── 03-01_elderly_rate_county.sql
+│       └── 03-02_population_density_county.sql
 ├── python/
 │   └── 05_data_import/           # Census data ingestion scripts
 │       ├── 05-01_import_tiger_boundaries.py
