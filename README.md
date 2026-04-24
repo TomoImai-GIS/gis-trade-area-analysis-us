@@ -89,7 +89,7 @@ WITH params AS (
 ```
 
 Example: Empire State Building (NYC) → US Capitol (DC), record_id = 384.
-Output lists NY → NJ → PA → MD → DC counties sorted by distance from route start.
+Output lists NY → NJ → DE → MD → DC counties sorted by distance from route start.
 
 ---
 

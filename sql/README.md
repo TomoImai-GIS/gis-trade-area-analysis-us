@@ -123,7 +123,7 @@ The query joins `admin_us.counties` against a LineString geometry stored in `gps
 **Example route (record_id = 384):**
 Empire State Building, New York City → US Capitol, Washington DC
 via I-95 southbound, switching to MD-295 at Baltimore
-Passes through: NY → NJ → PA → MD → DC
+Passes through: NY → NJ → DE → MD → DC
 
 ![Counties along route — NYC to DC](../output/sql/02-05_list_counties_along_route_from_gps_log.png)
 *Counties along route (record_id = 384): Empire State Building → US Capitol via I-95 / MD-295. Highlighted counties in travel order; state boundaries overlaid from `admin_us.states`.*

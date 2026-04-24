@@ -18,7 +18,7 @@
 --
 -- Example route (record_id = 384):
 --   Empire State Building, New York City → US Capitol, Washington DC
---   Passes through: NY → NJ → PA → MD → DC
+--   Passes through: NY → NJ → DE → MD → DC
 -- prerequisite: postgres_fdw configured (see [PREREQUISITES] section below)
 -- ============================================
 
