@@ -90,11 +90,11 @@ WITH params AS (
 )
 ```
 
-Example: Empire State Building (NYC) → US Capitol (DC), record_id = 384.
+Example: Empire State Building (NYC) → US Capitol (DC).
 Output lists NY → NJ → DE → MD → DC counties sorted by distance from route start.
 
 ![Counties along route — NYC to DC](output/sql/02-05_list_counties_along_route_from_gps_log.png)
-*Counties along route (record_id = 384): Empire State Building, NYC → US Capitol, Washington DC via I-95 / MD-295. Counties highlighted in travel order with ACS population data — generated with [`sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql`](sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql) + QGIS.*
+*Counties along route: Empire State Building, NYC → US Capitol, Washington DC via I-95 / MD-295. Counties highlighted in travel order with ACS population data — generated with [`sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql`](sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql) + QGIS.*
 
 ---
 

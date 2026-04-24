@@ -120,13 +120,13 @@ The query joins `admin_us.counties` against a LineString geometry stored in `gps
 | `route_length_in_county_km` / `_mi` | Distance driven within this county (km / miles) |
 | `distance_from_start_km` / `_mi` | Distance from route start to county entry — sort key (km / miles) |
 
-**Example route (record_id = 384):**
+**Example route:**
 Empire State Building, New York City → US Capitol, Washington DC
 via I-95 southbound, switching to MD-295 at Baltimore
 Passes through: NY → NJ → DE → MD → DC
 
 ![Counties along route — NYC to DC](../output/sql/02-05_list_counties_along_route_from_gps_log.png)
-*Counties along route (record_id = 384): Empire State Building → US Capitol via I-95 / MD-295. Highlighted counties in travel order; state boundaries overlaid from `admin_us.states`.*
+*Counties along route: Empire State Building → US Capitol via I-95 / MD-295. Highlighted counties in travel order; state boundaries overlaid from `admin_us.states`.*
 
 **Customisation examples:**
 
