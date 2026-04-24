@@ -31,24 +31,12 @@ Administrative boundary geometries are sourced from the US Census Bureau TIGER/L
 ![Population density choropleth — East Coast](output/sql/03-02_population_density_county_zoomed.png)
 *Zoomed view — East Coast (Mid-Atlantic to New England). The density gradient from Manhattan outward to suburban and rural counties is clearly visible.*
 
-![Elderly rate choropleth — contiguous US](output/sql/03-01_elderly_rate_county_wide.png)
-*Elderly rate by county (48 contiguous states) — generated with [`sql/03_visualization/03-01_elderly_rate_county.sql`](sql/03_visualization/03-01_elderly_rate_county.sql) + QGIS. ACS 5-year 2022. Data source switchable to Decennial Census 2020 via a single parameter.*
+**Notable patterns:**
 
-![Elderly rate choropleth — East Coast](output/sql/03-01_elderly_rate_county_zoomed.png)
-*Zoomed view — East Coast (Mid-Atlantic to New England). State boundaries overlaid from `admin_us.states`.*
-
-![Counties along route — NYC to DC](output/sql/02-05_list_counties_along_route_from_gps_log.png)
-*Counties along route (record_id = 384): Empire State Building, NYC → US Capitol, Washington DC via I-95 / MD-295. Counties highlighted in travel order with ACS population data — generated with [`sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql`](sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql) + QGIS.*
-
-**Notable patterns visible in the maps:**
-
-| Map | Pattern | Explanation |
-|-----|---------|-------------|
-| Density | Extreme concentration in Northeast corridor | New York County (Manhattan) tops ~27,000 persons/km²; density drops sharply westward from the Boston–Washington corridor |
-| Density | Very low density across the interior West | Wyoming, Montana, and Nevada counties often fall below 1 person/km² — frontier-county territory |
-| Elderly rate | Very low elderly rate (~3–10%) | Military base counties (Fort Benning GA, Camp Lejeune NC, Fort Riley KS), college towns (BYU Provo UT, Texas A&M TX), Native American reservation counties (Pine Ridge SD), oil-boom counties (McKenzie ND — Bakken shale) |
-| Elderly rate | Extremely high elderly rate (57.9%) | Sumter County FL — home of **The Villages**, the largest planned retirement community in the US (~130,000+ residents, 55+ only) |
-| Both | New England gap in Decennial layer | Connecticut appears blank when using Decennial Census due to a 2022 county reorganisation (8 legacy counties → 9 Planning Regions). Handled via a vintage-aware geometry CTE; see [Known Issues](docs/census_us_README.md#6-known-issues). |
+| Pattern | Explanation |
+|---------|-------------|
+| Extreme concentration in Northeast corridor | New York County (Manhattan) tops ~27,000 persons/km²; density drops sharply westward from the Boston–Washington corridor |
+| Very low density across the interior West | Wyoming, Montana, and Nevada counties often fall below 1 person/km² — frontier-county territory |
 
 ---
 
@@ -71,6 +59,20 @@ WITH params AS (
 )
 ```
 
+![Elderly rate choropleth — contiguous US](output/sql/03-01_elderly_rate_county_wide.png)
+*Elderly rate by county (48 contiguous states) — generated with [`sql/03_visualization/03-01_elderly_rate_county.sql`](sql/03_visualization/03-01_elderly_rate_county.sql) + QGIS. ACS 5-year 2022. Data source switchable to Decennial Census 2020 via a single parameter.*
+
+![Elderly rate choropleth — East Coast](output/sql/03-01_elderly_rate_county_zoomed.png)
+*Zoomed view — East Coast (Mid-Atlantic to New England). State boundaries overlaid from `admin_us.states`.*
+
+**Notable patterns:**
+
+| Pattern | Explanation |
+|---------|-------------|
+| Very low elderly rate (~3–10%) | Military base counties (Fort Benning GA, Camp Lejeune NC, Fort Riley KS), college towns (BYU Provo UT, Texas A&M TX), Native American reservation counties (Pine Ridge SD), oil-boom counties (McKenzie ND — Bakken shale) |
+| Extremely high elderly rate (57.9%) | Sumter County FL — home of **The Villages**, the largest planned retirement community in the US (~130,000+ residents, 55+ only) |
+| New England gap in Decennial layer | Connecticut appears blank when using Decennial Census due to a 2022 county reorganisation (8 legacy counties → 9 Planning Regions). Handled via a vintage-aware geometry CTE; see [Known Issues](docs/census_us_README.md#6-known-issues). |
+
 ### 🏪 Trade Area Analysis *(planned)*
 
 Aggregate county-level population, elderly rate, household income, and poverty data within a defined trade area. The starting point for **retail site selection** and **franchise territory planning**.
@@ -90,6 +92,9 @@ WITH params AS (
 
 Example: Empire State Building (NYC) → US Capitol (DC), record_id = 384.
 Output lists NY → NJ → DE → MD → DC counties sorted by distance from route start.
+
+![Counties along route — NYC to DC](output/sql/02-05_list_counties_along_route_from_gps_log.png)
+*Counties along route (record_id = 384): Empire State Building, NYC → US Capitol, Washington DC via I-95 / MD-295. Counties highlighted in travel order with ACS population data — generated with [`sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql`](sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql) + QGIS.*
 
 ---
 
