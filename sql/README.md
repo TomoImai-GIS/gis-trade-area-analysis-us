@@ -21,6 +21,7 @@ Production-ready PostGIS SQL templates for spatial analysis and location intelli
 |------|---------|-------|--------|
 | 02-01_calc_trade_area_population.sql | Aggregate population within a radius | center lon/lat, radius (m) | population, elderly rate, income — per county | 🚧 planned |
 | 02-02_rank_counties_by_elderly_rate.sql | Rank counties by elderly population rate | state filter (optional) | ranked counties with demographic breakdown | 🚧 planned |
+| [02-05_list_counties_along_route_from_gps_log.sql](02_analysis/02-05_list_counties_along_route_from_gps_log.sql) | List US counties along a GPS-logged route, in travel order, with route length per county and ACS demographics | record_id from gps_log, ACS survey_year | counties in travel order with route_length_in_county_km, distance_from_start_km, total_pop |
 
 ### 03_visualization/ — QGIS / map output queries
 
@@ -92,6 +93,52 @@ Both `pop_per_km2` and `pop_per_sq_mi` are output. Land area is taken from the T
 
 - `aland` (land area in m²) is sourced from `geom_src` (the geometry table), not from the census table. Dividing by `1e6` converts to km²; dividing by `2589988.11` converts to sq mi.
 - Same `geom_src` / `src` CTE structure as 03-01 — the Connecticut vintage mismatch is handled identically.
+
+---
+
+### 🗺️ Route Analysis — Counties Along a GPS Route
+
+Identify which counties a route passes through, in travel order, with the distance driven through each county and ACS population data. Useful for **delivery route planning**, **logistics territory analysis**, and **field sales territory design**.
+
+```sql
+-- 02-05_list_counties_along_route_from_gps_log.sql
+WITH params AS (
+    SELECT
+        384  AS target_record_id,  -- record_id from the gps_log table
+        2022 AS survey_year        -- ACS vintage year
+)
+```
+
+The query joins `admin_us.counties` against a LineString geometry stored in `gps_log` (same database — no `postgres_fdw` needed). Counties are sorted by travel order using `ST_LineLocatePoint` + `ST_LineSubstring`:
+
+| Output column | Description |
+|---------------|-------------|
+| `geoid` | 5-digit county FIPS (primary key) |
+| `county_name` / `namelsad` | County name (short and long form) |
+| `stusps` / `state_name` | State code and full name |
+| `total_pop` | ACS total population |
+| `route_length_in_county_km` | Kilometres of the route within this county |
+| `distance_from_start_km` | Distance from route start to county entry — sort key |
+
+**Example route (record_id = 384):**
+Empire State Building, New York City → US Capitol, Washington DC
+Passes through: NY → NJ → PA → MD → DC
+
+**Customisation examples:**
+
+```sql
+-- Filter to specific states only
+AND c.stusps IN ('NY', 'NJ', 'PA')
+
+-- Add population density per county segment
+ROUND(a.total_pop::numeric / NULLIF(c.aland / 1e6, 0)::numeric, 1) AS pop_per_km2
+
+-- Analyse multiple routes at once
+WHERE g.record_id IN (384, 385, 386) AND ST_Intersects(c.geom, g.geom)
+-- (add record_id to ORDER BY for multi-route output)
+```
+
+> **gps_log table:** assumed to be in the same PostgreSQL database as `admin_us` and `census_us`. Required columns: `record_id INTEGER`, `geom GEOMETRY(LineString, 4326)`.
 
 ---
 

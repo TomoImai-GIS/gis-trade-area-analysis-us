@@ -72,9 +72,21 @@ WITH params AS (
 
 Aggregate county-level population, elderly rate, household income, and poverty data within a defined trade area. The starting point for **retail site selection** and **franchise territory planning**.
 
-### 🗺️ Location Intelligence *(planned)*
+### 🗺️ Route Analysis
 
-Reverse-geocode coordinates to county, calculate straight-line distances between points, and identify counties within a radius — foundational building blocks for location-based business analysis.
+Identify which counties a GPS-logged route passes through, in travel order, with kilometres driven per county and ACS population data. Useful for **delivery route planning**, **logistics territory design**, and **field sales territory management**.
+
+```sql
+-- sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql
+WITH params AS (
+    SELECT
+        384  AS target_record_id,  -- record_id from the gps_log table
+        2022 AS survey_year        -- ACS vintage year
+)
+```
+
+Example: Empire State Building (NYC) → US Capitol (DC), record_id = 384.
+Output lists NY → NJ → PA → MD → DC counties sorted by distance from route start.
 
 ---
 
@@ -86,6 +98,7 @@ Reverse-geocode coordinates to county, calculate straight-line distances between
 |----------|------|---------|
 | [`sql/03_visualization/`](sql/03_visualization/) | [03-01_elderly_rate_county.sql](sql/03_visualization/03-01_elderly_rate_county.sql) | County polygons with elderly rate for QGIS choropleth — ACS or Decennial, parameterised coverage |
 | [`sql/03_visualization/`](sql/03_visualization/) | [03-02_population_density_county.sql](sql/03_visualization/03-02_population_density_county.sql) | County polygons with population density (persons/km² and persons/sq mi) — uses TIGER/Line `aland` for accurate land area |
+| [`sql/02_analysis/`](sql/02_analysis/) | [02-05_list_counties_along_route_from_gps_log.sql](sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql) | List counties along a GPS-logged route in travel order — route length per county and ACS demographics |
 | `sql/01_basic/` | *(planned)* | Reverse geocoding, county lookup, distance calculation |
 | `sql/02_analysis/` | *(planned)* | Trade area population, demographic ranking, income/poverty analysis |
 
