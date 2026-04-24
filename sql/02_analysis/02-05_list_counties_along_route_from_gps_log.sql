@@ -104,15 +104,21 @@ SELECT
     c.state_name,
     a.total_pop,
 
-    -- Route length within this county (km)
+    -- Route length within this county (km and miles)
     ROUND(
         (ST_Length(
             ST_Intersection(c.geom, g.geom)::geography
         ) / 1000)::numeric,
         2
     )               AS route_length_in_county_km,
+    ROUND(
+        (ST_Length(
+            ST_Intersection(c.geom, g.geom)::geography
+        ) / 1609.344)::numeric,
+        2
+    )               AS route_length_in_county_mi,
 
-    -- Distance from route start to this county's entry point (km)
+    -- Distance from route start to this county's entry point (km and miles)
     -- Used for ORDER BY to reproduce travel order.
     -- ST_ClosestPoint finds the point on the county geometry nearest to the
     -- route start; ST_LineLocatePoint converts that to a 0–1 fraction along
@@ -130,6 +136,19 @@ SELECT
         ) / 1000)::numeric,
         2
     )               AS distance_from_start_km,
+    ROUND(
+        (ST_Length(
+            ST_LineSubstring(
+                g.geom,
+                0,
+                ST_LineLocatePoint(
+                    g.geom,
+                    ST_ClosestPoint(c.geom, ST_StartPoint(g.geom))
+                )
+            )::geography
+        ) / 1609.344)::numeric,
+        2
+    )               AS distance_from_start_mi,
 
     -- GPS log metadata
     g.record_id
@@ -160,7 +179,9 @@ ORDER BY distance_from_start_km;
 --   state_name               Full state name
 --   total_pop                ACS total population (NULL if no ACS record for survey_year)
 --   route_length_in_county_km  Route length within this county (km)
+--   route_length_in_county_mi  Route length within this county (miles)
 --   distance_from_start_km   Distance from route start to county entry (km) — sort key
+--   distance_from_start_mi   Distance from route start to county entry (miles)
 --   record_id                GPS log record ID (for reference)
 --
 -- gps_log table location:
