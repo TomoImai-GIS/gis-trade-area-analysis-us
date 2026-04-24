@@ -109,7 +109,7 @@ WITH params AS (
 )
 ```
 
-The query joins `admin_us.counties` against a LineString geometry stored in `gps_log` (same database — no `postgres_fdw` needed). Counties are sorted by travel order using `ST_LineLocatePoint` + `ST_LineSubstring`:
+The query joins `admin_us.counties` against a LineString geometry stored in `gps_log`. Counties are sorted by travel order using `ST_LineLocatePoint` + `ST_LineSubstring`. Both km and mile columns are output for each distance measure:
 
 | Output column | Description |
 |---------------|-------------|
@@ -117,12 +117,16 @@ The query joins `admin_us.counties` against a LineString geometry stored in `gps
 | `county_name` / `namelsad` | County name (short and long form) |
 | `stusps` / `state_name` | State code and full name |
 | `total_pop` | ACS total population |
-| `route_length_in_county_km` | Kilometres of the route within this county |
-| `distance_from_start_km` | Distance from route start to county entry — sort key |
+| `route_length_in_county_km` / `_mi` | Distance driven within this county (km / miles) |
+| `distance_from_start_km` / `_mi` | Distance from route start to county entry — sort key (km / miles) |
 
 **Example route (record_id = 384):**
 Empire State Building, New York City → US Capitol, Washington DC
+via I-95 southbound, switching to MD-295 at Baltimore
 Passes through: NY → NJ → PA → MD → DC
+
+![Counties along route — NYC to DC](../output/sql/02-05_list_counties_along_route_from_gps_log.png)
+*Counties along route (record_id = 384): Empire State Building → US Capitol via I-95 / MD-295. Highlighted counties in travel order; state boundaries overlaid from `admin_us.states`.*
 
 **Customisation examples:**
 
@@ -138,7 +142,7 @@ WHERE g.record_id IN (384, 385, 386) AND ST_Intersects(c.geom, g.geom)
 -- (add record_id to ORDER BY for multi-route output)
 ```
 
-> **gps_log table:** assumed to be in the same PostgreSQL database as `admin_us` and `census_us`. Required columns: `record_id INTEGER`, `geom GEOMETRY(LineString, 4326)`.
+> **Prerequisites:** `admin_us` and `census_us` are accessed as foreign tables via `postgres_fdw` from the DB containing `gps_log`. See the `[PREREQUISITES]` section in the SQL file for the 5-step setup. Required `gps_log` columns: `record_id INTEGER`, `geom GEOMETRY(LineString, 4326)`.
 
 ---
 

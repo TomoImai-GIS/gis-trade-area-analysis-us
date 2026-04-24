@@ -37,6 +37,9 @@ Administrative boundary geometries are sourced from the US Census Bureau TIGER/L
 ![Elderly rate choropleth — East Coast](output/sql/03-01_elderly_rate_county_zoomed.png)
 *Zoomed view — East Coast (Mid-Atlantic to New England). State boundaries overlaid from `admin_us.states`.*
 
+![Counties along route — NYC to DC](output/sql/02-05_list_counties_along_route_from_gps_log.png)
+*Counties along route (record_id = 384): Empire State Building, NYC → US Capitol, Washington DC via I-95 / MD-295. Counties highlighted in travel order with ACS population data — generated with [`sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql`](sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql) + QGIS.*
+
 **Notable patterns visible in the maps:**
 
 | Map | Pattern | Explanation |
