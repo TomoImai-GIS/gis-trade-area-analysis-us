@@ -104,11 +104,12 @@ Output lists NY → NJ → DE → MD → DC counties sorted by distance from rou
 
 | Category | File | Purpose |
 |----------|------|---------|
+| [`sql/01_basic/`](sql/01_basic/) | [01-01_find_county_from_point.sql](sql/01_basic/01-01_find_county_from_point.sql) | Reverse-geocode a coordinate to county — name, GEOID, state, area_km2 |
+| `sql/01_basic/` | *(planned)* | Distance calculation between two points |
+| `sql/02_analysis/` | *(planned)* | Trade area population, demographic ranking, income/poverty analysis |
+| [`sql/02_analysis/`](sql/02_analysis/) | [02-05_list_counties_along_route_from_gps_log.sql](sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql) | List counties along a GPS-logged route in travel order — route length per county and ACS demographics |
 | [`sql/03_visualization/`](sql/03_visualization/) | [03-01_elderly_rate_county.sql](sql/03_visualization/03-01_elderly_rate_county.sql) | County polygons with elderly rate for QGIS choropleth — ACS or Decennial, parameterised coverage |
 | [`sql/03_visualization/`](sql/03_visualization/) | [03-02_population_density_county.sql](sql/03_visualization/03-02_population_density_county.sql) | County polygons with population density (persons/km² and persons/sq mi) — uses TIGER/Line `aland` for accurate land area |
-| [`sql/02_analysis/`](sql/02_analysis/) | [02-05_list_counties_along_route_from_gps_log.sql](sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql) | List counties along a GPS-logged route in travel order — route length per county and ACS demographics |
-| `sql/01_basic/` | *(planned)* | Reverse geocoding, county lookup, distance calculation |
-| `sql/02_analysis/` | *(planned)* | Trade area population, demographic ranking, income/poverty analysis |
 
 ---
 
@@ -175,8 +176,9 @@ Census API key registration: https://api.census.gov/data/key_signup.html
 gis-trade-area-analysis-us/
 ├── sql/                          # SQL templates
 │   ├── README.md                 # Full template index with code examples
-│   ├── 01_basic/                 # Foundational spatial operations (planned)
-│   ├── 02_analysis/              # Core spatial analysis (planned)
+│   ├── 01_basic/                 # Foundational spatial operations
+│   │   └── 01-01_find_county_from_point.sql
+│   ├── 02_analysis/              # Core spatial analysis (partial)
 │   └── 03_visualization/         # QGIS / map output queries
 │       ├── 03-01_elderly_rate_county.sql
 │       └── 03-02_population_density_county.sql
