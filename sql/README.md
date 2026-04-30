@@ -14,7 +14,7 @@ Production-ready PostGIS SQL templates for spatial analysis and location intelli
 |------|---------|-------|--------|
 | [01-01_find_county_from_point.sql](01_basic/01-01_find_county_from_point.sql) | Reverse-geocode a coordinate to county | lon, lat | county_name, geoid, state, area_km2 |
 | [01-02_lookup_county_by_geoid.sql](01_basic/01-02_lookup_county_by_geoid.sql) | County profile from a GEOID — area, population, density, state share | geoid, data_source | county_name, state, total_pop, area_km2, pop_per_km2, state_pop_share_pct |
-| 01-03_calc_distance_between_points.sql | Straight-line distance between two coordinates | two lon/lat pairs | distance_km, distance_miles | 🚧 planned |
+| [01-03_calc_distance_between_points.sql](01_basic/01-03_calc_distance_between_points.sql) | Straight-line (great-circle) distance between two coordinates | two lon/lat pairs | distance_km, distance_miles |
 
 ### 02_analysis/ — Core spatial analysis
 

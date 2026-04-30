@@ -106,7 +106,7 @@ Output lists NY → NJ → DE → MD → DC counties sorted by distance from rou
 |----------|------|---------|
 | [`sql/01_basic/`](sql/01_basic/) | [01-01_find_county_from_point.sql](sql/01_basic/01-01_find_county_from_point.sql) | Reverse-geocode a coordinate to county — name, GEOID, state, area_km2 |
 | [`sql/01_basic/`](sql/01_basic/) | [01-02_lookup_county_by_geoid.sql](sql/01_basic/01-02_lookup_county_by_geoid.sql) | County profile from a GEOID — area, population, density, state share |
-| `sql/01_basic/` | *(01-03 planned)* | Distance calculation between two points |
+| [`sql/01_basic/`](sql/01_basic/) | [01-03_calc_distance_between_points.sql](sql/01_basic/01-03_calc_distance_between_points.sql) | Straight-line (great-circle) distance between two coordinates — km and miles |
 | `sql/02_analysis/` | *(planned)* | Trade area population, demographic ranking, income/poverty analysis |
 | [`sql/02_analysis/`](sql/02_analysis/) | [02-05_list_counties_along_route_from_gps_log.sql](sql/02_analysis/02-05_list_counties_along_route_from_gps_log.sql) | List counties along a GPS-logged route in travel order — route length per county and ACS demographics |
 | [`sql/03_visualization/`](sql/03_visualization/) | [03-01_elderly_rate_county.sql](sql/03_visualization/03-01_elderly_rate_county.sql) | County polygons with elderly rate for QGIS choropleth — ACS or Decennial, parameterised coverage |
@@ -179,7 +179,8 @@ gis-trade-area-analysis-us/
 │   ├── README.md                 # Full template index with code examples
 │   ├── 01_basic/                 # Foundational spatial operations
 │   │   ├── 01-01_find_county_from_point.sql
-│   │   └── 01-02_lookup_county_by_geoid.sql
+│   │   ├── 01-02_lookup_county_by_geoid.sql
+│   │   └── 01-03_calc_distance_between_points.sql
 │   ├── 02_analysis/              # Core spatial analysis (partial)
 │   └── 03_visualization/         # QGIS / map output queries
 │       ├── 03-01_elderly_rate_county.sql
